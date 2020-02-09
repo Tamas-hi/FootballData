@@ -1,12 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace FootballData
 {
-    class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            var teams = new Service().GetAsync();
+            foreach(var team in teams)
+            {
+                Console.WriteLine(team.name + team.founded);
+            }
         }
     }
 }
