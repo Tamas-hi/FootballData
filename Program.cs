@@ -7,25 +7,48 @@ namespace FootballData
     {
         static int tableWidth = 100;
         public static void Main(string[] args)
-        {
-            var rootTeams = new Service().GetTeams(524); // 2019/2020 Premier League
-            var apiTeams = rootTeams.api;
-            var teams = apiTeams.teams;
-            /*foreach (var t in teams)
-            {
-                Console.WriteLine(t.name + t.country);
-            }*/
-            
+        {   
             PrintRow("Team Name", "Wins", "Draws", "Losses", "Points");
-            var rootStandings = new Service().GetStandings(524); // 2018/2019 Premier League
+
+            //GetStandings();
+            GetFixturesByRounds();
+            //GetRounds();
+        }
+
+        public static List<string> GetRounds()
+        {
+            var rootRounds = new Service().GetRounds(2);
+            var apiRounds = rootRounds.api;
+            var round = apiRounds.fixtures;
+
+            return round;
+        }
+
+        public static void GetStandings()
+        {
+            var rootStandings = new Service().GetStandings(2); // 2018/2019 Premier League
             var apiStandings = rootStandings.api;
             var standings = apiStandings.standings;
-            foreach(var s in standings)
+            foreach (var s in standings)
             {
-               foreach(var t in s)
+                foreach (var t in s)
                 {
                     Console.WriteLine(t.teamName + "\t\t\t" + t.all.win + "\t\t" + t.all.draw + "\t\t" + t.all.lose + "\t\t" + "\t" + t.points);
                 }
+            }
+        }
+
+        public static void GetFixturesByRounds()
+        {
+            var allRounds = GetRounds();
+            var round = allRounds[37];
+            var rootFixtures = new Service().GetFixtures(2, round); // 2018/2019 Premier League - first round
+            var apiFixtures = rootFixtures.api;
+            var fixtures = apiFixtures.fixtures;
+
+            foreach (var f in fixtures)
+            {
+                Console.WriteLine(f.homeTeam.team_name + " - " + f.awayTeam.team_name + "\t\t" + f.score.fulltime);
             }
         }
 

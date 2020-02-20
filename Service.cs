@@ -51,5 +51,15 @@ namespace FootballData
         {
             return GetData<RootStandingObject>(new Uri(serverUrl, $"/v2/leagueTable/{league_id}/"));
         }
+
+        public RootFixtureObject GetFixtures(int league_id, string round)
+        {
+            return GetData<RootFixtureObject>(new Uri(serverUrl, $"/v2/fixtures/league/{league_id}/{round}"));
+        }
+
+        public RootRoundObject GetRounds(int league_id)
+        {
+            return GetData<RootRoundObject>(new Uri(serverUrl, $"/v2/fixtures/rounds/{league_id}/"));
+        }
     }
 }
