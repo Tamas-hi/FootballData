@@ -1,5 +1,17 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using WikiClientLibrary;
+using WikiClientLibrary.Client;
+using WikiClientLibrary.Pages;
+using WikiClientLibrary.Pages.Queries.Properties;
+using WikiClientLibrary.Sites;
 
 namespace FootballData
 {
@@ -8,11 +20,57 @@ namespace FootballData
         static int tableWidth = 100;
         public static void Main(string[] args)
         {   
-            PrintRow("Team Name", "Wins", "Draws", "Losses", "Points");
+           // PrintRow("Team Name", "Wins", "Draws", "Losses", "Points");
 
             //GetStandings();
-            GetFixturesByRounds();
+            //GetFixturesByRounds();
             //GetRounds();
+            Dictionary<dynamic, dynamic> IdNamePairs = new Dictionary<dynamic, dynamic>();
+
+            dynamic result = new Service().GetIdentifiers();
+
+            foreach (Match match in Regex.Matches(result.ToString(), @"(?<!\w)Q\d\w+"))
+            {
+                if (!IdNamePairs.ContainsKey(match.Value))
+                {
+                    IdNamePairs.Add(match.Value, null);
+                }
+            }
+
+            foreach (Match match in Regex.Matches(result.ToString(), @"(?<!\w)P\d\w+"))
+            {
+                if (!IdNamePairs.ContainsKey(match.Value))
+                {
+                    if(IdNamePairs.Count < 50)
+                    IdNamePairs.Add(match.Value, null);
+                }
+            }
+            
+            var x = string.Format("{0}", string.Join("|", IdNamePairs.Keys));
+            
+
+            var entityNames = new Service().GetEntityNames(x);
+
+            IdNamePairs.Clear();
+            foreach(var data in entityNames)
+            {
+                foreach(var y in data)
+                {
+                    if(y is JObject)
+                    foreach(var z in y)
+                    {
+                      foreach(var w in z)
+                      {
+                                IdNamePairs[w.id] = w.labels.en.value;
+                      }
+                    }
+                }
+            }
+
+            foreach(KeyValuePair<dynamic, dynamic> pairs in IdNamePairs)
+            {
+                Console.WriteLine(pairs.Key + " " + pairs.Value);
+            }
         }
 
         public static List<string> GetRounds()
@@ -42,7 +100,7 @@ namespace FootballData
         {
             var allRounds = GetRounds();
             var round = allRounds[37];
-            var rootFixtures = new Service().GetFixtures(2, round); // 2018/2019 Premier League - first round
+            var rootFixtures = new Service().GetFixturesByRound(2, round); // 2018/2019 Premier League - last round
             var apiFixtures = rootFixtures.api;
             var fixtures = apiFixtures.fixtures;
 

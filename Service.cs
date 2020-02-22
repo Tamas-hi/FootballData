@@ -18,7 +18,7 @@ namespace FootballData
         /// <typeparam name="T">Type of the returned result.</typeparam>
         /// <param name="uri">The uri to fetch from. </param>
         /// <returns>The needed data or null</returns>
-        private T GetData<T>(Uri uri) where T : class
+        private T GetDataFromFootballApi<T>(Uri uri) where T : class
         {
             var client = new RestClient(uri);
             var request = new RestRequest(Method.GET);
@@ -38,28 +38,58 @@ namespace FootballData
             }
         }
 
+        private T GetDataFromWikidata<T>(Uri uri) where T: class
+        {
+            var client = new RestClient(uri);
+            var request = new RestRequest(Method.GET);
+            IRestResponse response = client.Execute(request);
+
+            if (response.IsSuccessful)
+            {
+                var json = response.Content;
+                dynamic r = JsonConvert.DeserializeObject<dynamic>(json);
+                return r;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public dynamic GetIdentifiers()
+        { 
+            return GetDataFromWikidata<dynamic>(new Uri("http://www.wikidata.org/entity/Q39052816.json"));
+        }
+
+        public dynamic GetEntityNames(string allKeysSeparated = "")
+        {
+            return GetDataFromWikidata<dynamic>(new Uri($"https://www.wikidata.org/w/api.php?action=wbgetentities&ids={allKeysSeparated}&format=json&props=labels&languages=en"));
+        }
+
         /// <summary>
         /// Get Teams from Football API
         /// </summary>
         /// <returns></returns>
         public RootTeamObject GetTeams(int league_id)
         {
-            return GetData<RootTeamObject>(new Uri(serverUrl, $"/v2/teams/league/{league_id}/"));
+            return GetDataFromFootballApi<RootTeamObject>(new Uri(serverUrl, $"/v2/teams/league/{league_id}/"));
         }
 
         public RootStandingObject GetStandings(int league_id)
         {
-            return GetData<RootStandingObject>(new Uri(serverUrl, $"/v2/leagueTable/{league_id}/"));
+            return GetDataFromFootballApi<RootStandingObject>(new Uri(serverUrl, $"/v2/leagueTable/{league_id}/"));
         }
 
-        public RootFixtureObject GetFixtures(int league_id, string round)
+        public RootFixtureObject GetFixturesByRound(int league_id, string round)
         {
-            return GetData<RootFixtureObject>(new Uri(serverUrl, $"/v2/fixtures/league/{league_id}/{round}"));
+            return GetDataFromFootballApi<RootFixtureObject>(new Uri(serverUrl, $"/v2/fixtures/league/{league_id}/{round}"));
         }
 
         public RootRoundObject GetRounds(int league_id)
         {
-            return GetData<RootRoundObject>(new Uri(serverUrl, $"/v2/fixtures/rounds/{league_id}/"));
+            return GetDataFromFootballApi<RootRoundObject>(new Uri(serverUrl, $"/v2/fixtures/rounds/{league_id}/"));
         }
+
+
     }
 }
