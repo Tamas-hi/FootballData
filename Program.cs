@@ -7,11 +7,6 @@ using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using WikiClientLibrary;
-using WikiClientLibrary.Client;
-using WikiClientLibrary.Pages;
-using WikiClientLibrary.Pages.Queries.Properties;
-using WikiClientLibrary.Sites;
 
 namespace FootballData
 {
@@ -21,19 +16,41 @@ namespace FootballData
         public static void Main(string[] args)
         {
             PrintRow("Wikidata", "Football API");
-            var firstRow = "League name with season:" + "\t\t\t" + GetLeagueFromWiki(0) + "\t\t\t\t\t" + GetLeagueFromAPI(0);
-            var secondRow = "Description:" + "\t\t\t\t\t" + GetLeagueFromWiki(1) + "\t\t\t" + "No description in FootballAPI";
-            var thirdRow = "Sports season or league or competition:" + "\t\t" + GetLeagueFromWiki(2) + "\t\t\t\t\t\t" + GetLeagueFromAPI(2);
-            var fourthRow = "Follows:" + "\t\t\t\t\t" + GetLeagueFromWiki(3) + "\t\t\t\t" + "Previous season can be found with a specific league ID (37)";
-            var fifthRow = "Followed By:" + "\t\t\t\t\t" + GetLeagueFromWiki(4) + "\t\t\t\t" + "Next season can be found with a specific league ID (524)";
-            var sixthRow = "Country: " + "\t\t\t\t\t" + GetLeagueFromWiki(5) + "\t\t\t\t\t" + GetLeagueFromAPI(5);
-            var seventhRow = "Edition: " + "\t\t\t\t\t\t" + GetLeagueFromWiki(6) + "\t\t\t\t\t" + "No edition number in FootballAPI";
-            var eighthRow = "Sport: " + "\t\t\t\t\t\t" + GetLeagueFromWiki(7) + "\t\t\t\t" + "No sport type in FootballAPI";
-            var ninethRow = "Start time: " + "\t\t\t\t\t" + GetLeagueFromWiki(8) + "\t\t\t\t" + GetLeagueFromAPI(8);
-            var tenthRow = "End time: " + "\t\t\t\t\t" + GetLeagueFromWiki(9) + "\t\t\t\t" + GetLeagueFromAPI(9);
-            var eleventhRow = "Time period: " + "\t\t\t\t\t" + GetLeagueFromWiki(10) + "\t\t\t\t" + GetLeagueFromAPI(8).Year + "-" + GetLeagueFromAPI(9).Year;
-            var twelvethRow = "Organizer:" + "\t\t\t\t\t" + GetLeagueFromWiki(2) + "\t\t\t\t\t" + GetLeagueFromAPI(2);
-            var thirteenthRow = "Number of participants:" + "\t\t\t\t" + GetLeagueFromWiki(11) + "\t\t\t\t\t\t\t" + GetLeagueFromAPI(11);
+            var firstRow = "\nLeague name with season:" + "\t\t\t" + GetLeagueFromWiki(0) + "\t\t\t\t\t" + GetLeagueFromAPI(0);
+             var secondRow = "Description:" + "\t\t\t\t\t" + GetLeagueFromWiki(1) + "\t\t\t" + "No description in FootballAPI";
+             var thirdRow = "Sports season or league or competition:" + "\t\t" + GetLeagueFromWiki(2) + "\t\t\t\t\t\t" + GetLeagueFromAPI(2);
+             var fourthRow = "Follows:" + "\t\t\t\t\t" + GetLeagueFromWiki(3) + "\t\t\t\t" + "Previous season can be found with a specific league ID (37)";
+             var fifthRow = "Followed By:" + "\t\t\t\t\t" + GetLeagueFromWiki(4) + "\t\t\t\t" + "Next season can be found with a specific league ID (524)";
+             var sixthRow = "Country: " + "\t\t\t\t\t" + GetLeagueFromWiki(5) + "\t\t\t\t\t" + GetLeagueFromAPI(5);
+             var seventhRow = "Edition: " + "\t\t\t\t\t\t" + GetLeagueFromWiki(6) + "\t\t\t\t\t" + "No edition number in FootballAPI";
+             var eighthRow = "Sport: " + "\t\t\t\t\t\t" + GetLeagueFromWiki(7) + "\t\t\t\t" + "No sport type in FootballAPI";
+             var ninethRow = "Start time: " + "\t\t\t\t\t" + GetLeagueFromWiki(8) + "\t\t\t\t" + GetLeagueFromAPI(8);
+             var tenthRow = "End time: " + "\t\t\t\t\t" + GetLeagueFromWiki(9) + "\t\t\t\t" + GetLeagueFromAPI(9);
+             var eleventhRow = "Time period: " + "\t\t\t\t\t" + GetLeagueFromWiki(10) + "\t\t\t\t" + GetLeagueFromAPI(8).Year + "-" + GetLeagueFromAPI(9).Year;
+             var twelvethRow = "Organizer:" + "\t\t\t\t\t" + GetLeagueFromWiki(2) + "\t\t\t\t\t" + GetLeagueFromAPI(2);
+             var thirteenthRow = "Number of participants:" + "\t\t\t\t" + GetLeagueFromWiki(11) + "\t\t\t\t\t\t\t" + GetLeagueFromAPI(11);
+            List<dynamic> allTeamsFromWiki = GetLeagueFromWiki(12);
+            List<Team> allTeamsFromAPI = GetLeagueFromAPI(12);
+            var fourteenthRow = "Participating team: ";
+            var allTeams = allTeamsFromWiki.Zip(allTeamsFromAPI, (a, b) => (a, b));
+            Console.Write(fourteenthRow);
+            foreach(var team in allTeams)
+            {
+                Console.WriteLine("\t\t\t\t\t"+ team.a + "\t\t\t\t\t\t\t" + team.b.name);
+            }
+            var fifteenthRow = "Winner:" + "\t\t\t\t\t" + GetLeagueFromWiki(13) + "\t\t\t\t\t" + GetLeagueFromAPI(13);
+            var sixteenthRow = "League level below:" + "\t\t\t\t" + GetLeagueFromWiki(14) + "\t\t\t\t\t" + "League can be found with a specific league id";
+            Console.Write("Relegated:"+"\t\t\t\t");
+            var RelegatedTeamsFromWiki = GetLeagueFromWiki(15);
+            foreach(var team in RelegatedTeamsFromWiki)
+            {
+                Console.Write(team);
+            }
+            var RelegatedTeamsFromAPI = GetLeagueFromAPI(15);
+            foreach(var team in RelegatedTeamsFromAPI)
+            {
+                Console.Write(team.teamName);
+            }
             Console.WriteLine(firstRow);
             Console.WriteLine(secondRow);
             Console.WriteLine(thirdRow);
@@ -47,6 +64,7 @@ namespace FootballData
             Console.WriteLine(eleventhRow);
             Console.WriteLine(twelvethRow);
             Console.WriteLine(thirteenthRow);
+            Console.WriteLine(fifteenthRow);
             //GetStandings();
             //GetFixturesByRounds();
             //GetRounds();
@@ -77,17 +95,48 @@ namespace FootballData
                 return parsedDate;
             }
 
-            if(chooser == 11)
+            if(chooser == 11 || chooser == 12)
             {
                 var rootTeam = new Service().GetTeams(2);
                 var apiTeam = rootTeam.api;
                 var teams = apiTeam.teams;
-                return teams.Count();
+                if (chooser == 12)
+                {
+                    return teams;
+                }
+                else
+                {
+                    return teams.Count();
+                }
+            }
+
+            if (chooser == 13 || chooser == 15)
+            {
+                var rootStandings = new Service().GetStandings(2);
+                var apiStandings = rootStandings.api;
+                var standings = apiStandings.standings;
+
+                foreach(var s in standings)
+                {
+                    if (chooser == 15)
+                    {
+                       var lastThree = s.Skip(Math.Max(0, s.Count() - 3));
+                       return lastThree;
+                    }
+                    else
+                    {
+                        foreach (var t in s)
+                        {
+                            if (chooser == 13)
+                                return t.teamName;
+                        }
+                    }
+                }
             }
             return null;
         }
 
-        private static string GetLeagueFromWiki(int chooser)
+        private static dynamic GetLeagueFromWiki(int chooser)
         {
             var rootLeague = new Service().GetIdentifiers();
             var IdNamePairs = GetQPsFromWikidata();
@@ -194,6 +243,47 @@ namespace FootballData
                                 }
                             }
 
+                            if (chooser == 12)
+                            {
+                                List<dynamic> allID = new List<dynamic>();
+                                foreach (var claim in subData.claims.P1923)
+                                {
+                                    dynamic ID = claim.mainsnak.datavalue.value.id;
+                                    var ProcessedData = IdNamePairs[ID];
+                                    allID.Add(ProcessedData);
+                                }
+                                return allID;
+                            }
+
+                            if (chooser == 13)
+                            {
+                                foreach (var claim in subData.claims.P1346)
+                                {
+                                    dynamic ID = claim.mainsnak.datavalue.value.id;
+                                    var ProcessedData = IdNamePairs[ID];
+                                    return ProcessedData;
+                                }
+                            }
+                            if (chooser == 14)
+                            {
+                                foreach (var claim in subData.claims.P2500)
+                                {
+                                    dynamic ID = claim.mainsnak.datavalue.value.id;
+                                    var ProcessedData = IdNamePairs[ID];
+                                    return ProcessedData;
+                                }
+                            }
+                            if (chooser == 15)
+                            {
+                                List<dynamic> allID = new List<dynamic>();
+                                foreach (var claim in subData.claims.P2882)
+                                {
+                                    dynamic ID = claim.mainsnak.datavalue.value.id;
+                                    var ProcessedData = IdNamePairs[ID];
+                                    allID.Add(ProcessedData);
+                                }
+                                return allID;
+                            }
                         }
                     }
                 }
