@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using FootballData.Wikidata_Models;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 using System;
@@ -38,7 +39,7 @@ namespace FootballData
             }
         }
 
-        private T GetDataFromWikidata<T>(Uri uri) where T: class
+        private T GetDataFromWikidata<T>(Uri uri) where T : class
         {
             var client = new RestClient(uri);
             var request = new RestRequest(Method.GET);
@@ -47,7 +48,7 @@ namespace FootballData
             if (response.IsSuccessful)
             {
                 var json = response.Content;
-                dynamic r = JsonConvert.DeserializeObject<dynamic>(json);
+                T r = JsonConvert.DeserializeObject<T>(json);
                 return r;
             }
             else
@@ -57,7 +58,7 @@ namespace FootballData
         }
 
         public dynamic GetIdentifiers()
-        { 
+        {
             return GetDataFromWikidata<dynamic>(new Uri("http://www.wikidata.org/entity/Q39052816.json"));
         }
 
@@ -66,6 +67,15 @@ namespace FootballData
             return GetDataFromWikidata<dynamic>(new Uri($"https://www.wikidata.org/w/api.php?action=wbgetentities&ids={allKeysSeparated}&format=json&props=labels&languages=en"));
         }
 
+        public RootSearchObject GetEntityBySearch(string wikiTeamName)
+        {
+            return GetDataFromWikidata<RootSearchObject>(new Uri($"https://www.wikidata.org/w/api.php?action=wbsearchentities&search={wikiTeamName}&language=en&limit=1&format=json"));
+        }
+
+        public RootEntityObject GetEntityObject()
+        {
+            return GetDataFromWikidata<RootEntityObject>(new Uri($"https://www.wikidata.org/w/api.php?action=wbgetentities&ids=Q39052816&format=json&props=labels|claims&languages=en"));
+        }
         /// <summary>
         /// Get Teams from Football API
         /// </summary>
