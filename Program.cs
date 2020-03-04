@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using WikiClientLibrary;
@@ -18,6 +19,7 @@ namespace FootballData
     public class Program
     {
         static int tableWidth = 150;
+        public static string Identity = null;
         public static void Main(string[] args)
         {
             // init 
@@ -25,15 +27,17 @@ namespace FootballData
             // var rootApiLeague = new Service().GetLeagues(2);
             PrintRow("Wikidata", "Football API");
 
-            Console.Write("Enter Wikidata team name: ");
-            string WikiTeamName = Console.ReadLine();
+            Console.Write("Enter Wikidata league name: ");
+            string wikiLeagueName = Console.ReadLine();
+            wikiLeagueName = wikiLeagueName.Replace(' ', '_');
+            GetEntityData(wikiLeagueName, "wiki");
 
-            string result = GetEntityBySearch(WikiTeamName);
-            Console.WriteLine(result);
 
-
-            Console.Write("Enter Football API team name: ");
-            string APITeamName = Console.ReadLine();
+            Console.Write("Enter Football API league name: ");
+            string APILeagueName = Console.ReadLine();
+            string APISeasonNumber = new String(APILeagueName.Where(Char.IsDigit).ToArray()).Substring(0, 4);
+            APILeagueName = new string(APILeagueName.Where(ch => !Char.IsDigit(ch)).ToArray()).Trim();
+            GetEntityData(APILeagueName, "api", APISeasonNumber);
 
 
 
@@ -69,61 +73,71 @@ namespace FootballData
             //GetQPsFromWikidata();
         }
 
-        private static string GetEntityBySearch(string wikiTeamName)
+        private static string GetEntityIdBySearch(string wikiTeamName) // wiki
         {
-            var rootEntity = new Service().GetEntityBySearch(wikiTeamName);
+            var rootEntity = new Service().GetEntityIdBySearch(wikiTeamName);
             var entity = rootEntity.Search;
             foreach (var property in entity)
             {
-                return property.Label; // title ha kell az egyediség
+                return property.Title; // label ha a név kell
             }
             return null;
         }
 
-        public static void GetEntityObject()
+        private static int GetLeagueIdBySearch(string wikiLeagueName) // Football API
         {
-            var rootEntities = new Service().GetEntityObject();
-            var entitites = rootEntities.entities;
-            var entity = entitites.Q39052816;
-        }
-
-        private static dynamic GetLeagueFromAPI(int chooser)
-        {
-            var rootLeague = new Service().GetLeagues(2);
+            var rootLeague = new Service().FindLeagueByIdAndSeason(wikiLeagueName);
             var apiLeague = rootLeague.api;
             var leagues = apiLeague.leagues;
-            if (chooser == 0)
-                return leagues.First().season + " " + leagues.First().name;
-            if (chooser == 2)
-                return leagues.First().name;
-            if (chooser == 5)
-            {
-                return leagues.First().country;
-            }
-            if (chooser == 8)
-            {
-                DateTime parsedDate = DateTime.Parse(leagues.First().season_start);
-                return parsedDate;
-            }
-            if (chooser == 9)
-            {
-                DateTime parsedDate = DateTime.Parse(leagues.First().season_end);
-                return parsedDate;
-            }
-
-            if (chooser == 11)
-            {
-                var rootTeam = new Service().GetTeams(2);
-                var apiTeam = rootTeam.api;
-                var teams = apiTeam.teams;
-                return teams.Count();
-            }
-            return null;
+            return leagues.First().league_id;
         }
 
-        private static string GetLeagueFromWiki(int chooser)
+        public static string GetAllProperties(object obj)
         {
-            var rootLeague = new Service().GetIdentifiers();
+            return string.Join(" ", obj.GetType()
+                                        .GetProperties()
+                                        .Select(prop => prop.GetValue(obj)));
+        }
+
+        private static string GetEntityData(string wikiTeamName, string value, string ApiSeasonNumber = null) // wiki || Football API
+        {
+            if (value == "wiki")
+            {
+                Identity = GetEntityIdBySearch(wikiTeamName);
+                var rootEntity = new Service().GetEntityObject(Identity);
+                // Console.WriteLine(rootEntity.Entities.ID.Labels.En.Value);
+            }
+            else if (value == "api")
+            {
+                var league_id = GetLeagueIdBySearch(wikiTeamName);
+                var rootLeague = new Service().GetLeagues(league_id);
+                var apiLeague = rootLeague.api;
+                var leagues = apiLeague.leagues;
+                //Console.WriteLine(leagues.First().league_id);
+                bool firstOccurence = true;
+
+                var rootEntity = new Service().GetLeaguesFromSeason(ApiSeasonNumber);
+                foreach (var league in rootEntity.api.leagues)
+                {
+                    if (league.league_id == leagues.First().league_id)
+                    {
+
+                        PropertyInfo[] properties = typeof(League).GetProperties();
+
+                        if (firstOccurence)
+                        {
+                            foreach (PropertyInfo property in properties)
+                            {
+                                Console.WriteLine(property.Name + "\t" + property.GetValue(league));
+                            }
+                            firstOccurence = false;
+                        }
+                    }
+                }
+            }
+
+
+            /*var rootLeague = new Service().GetIdentifiers();
             var IdNamePairs = GetQPsFromWikidata();
             foreach (var entityList in rootLeague)
             {
@@ -231,6 +245,40 @@ namespace FootballData
                         }
                     }
                 }
+            }*/
+            return null;
+        }
+
+        private static dynamic GetLeagueFromAPI(int chooser)
+        {
+            var rootLeague = new Service().GetLeagues(2);
+            var apiLeague = rootLeague.api;
+            var leagues = apiLeague.leagues;
+            if (chooser == 0)
+                return leagues.First().season + " " + leagues.First().name;
+            if (chooser == 2)
+                return leagues.First().name;
+            if (chooser == 5)
+            {
+                return leagues.First().country;
+            }
+            if (chooser == 8)
+            {
+                DateTime parsedDate = DateTime.Parse(leagues.First().season_start);
+                return parsedDate;
+            }
+            if (chooser == 9)
+            {
+                DateTime parsedDate = DateTime.Parse(leagues.First().season_end);
+                return parsedDate;
+            }
+
+            if (chooser == 11)
+            {
+                var rootTeam = new Service().GetTeams(2);
+                var apiTeam = rootTeam.api;
+                var teams = apiTeam.teams;
+                return teams.Count();
             }
             return null;
         }

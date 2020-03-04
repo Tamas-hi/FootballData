@@ -48,7 +48,11 @@ namespace FootballData
             if (response.IsSuccessful)
             {
                 var json = response.Content;
-                T r = JsonConvert.DeserializeObject<T>(json);
+                T r = JsonConvert.DeserializeObject<T>(json, new JsonSerializerSettings()
+                {
+                    ContractResolver = new CustomResolver()
+                }
+                );
                 return r;
             }
             else
@@ -67,14 +71,14 @@ namespace FootballData
             return GetDataFromWikidata<dynamic>(new Uri($"https://www.wikidata.org/w/api.php?action=wbgetentities&ids={allKeysSeparated}&format=json&props=labels&languages=en"));
         }
 
-        public RootSearchObject GetEntityBySearch(string wikiTeamName)
+        public RootSearchObject GetEntityIdBySearch(string wikiTeamName)
         {
             return GetDataFromWikidata<RootSearchObject>(new Uri($"https://www.wikidata.org/w/api.php?action=wbsearchentities&search={wikiTeamName}&language=en&limit=1&format=json"));
         }
 
-        public RootEntityObject GetEntityObject()
+        public Temperatures GetEntityObject(string id)
         {
-            return GetDataFromWikidata<RootEntityObject>(new Uri($"https://www.wikidata.org/w/api.php?action=wbgetentities&ids=Q39052816&format=json&props=labels|claims&languages=en"));
+            return GetDataFromWikidata<Temperatures>(new Uri($"https://www.wikidata.org/w/api.php?action=wbgetentities&ids={id}&languages=en&format=json&props=labels"));
         }
         /// <summary>
         /// Get Teams from Football API
@@ -104,6 +108,14 @@ namespace FootballData
         {
             return GetDataFromFootballApi<RootLeagueObject>(new Uri(serverUrl, $"/v2/leagues/league/{league_id}/"));
         }
+        public RootLeagueObject FindLeagueByIdAndSeason(string league_name)
+        {
+            return GetDataFromFootballApi<RootLeagueObject>(new Uri(serverUrl, $"/v2/leagues/search/{league_name}"));
+        }
 
+        public RootLeagueObject GetLeaguesFromSeason(string season)
+        {
+            return GetDataFromFootballApi<RootLeagueObject>(new Uri(serverUrl, $"/v2/leagues/season/{season}"));
+        }
     }
 }
