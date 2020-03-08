@@ -117,5 +117,10 @@ namespace FootballData
         {
             return GetDataFromFootballApi<RootLeagueObject>(new Uri(serverUrl, $"/v2/leagues/season/{season}"));
         }
+
+        public RootLeagueObject GetSeasonsFromLeague(int league_id)
+        {
+            return GetDataFromFootballApi<RootLeagueObject>(new Uri(serverUrl, $"/v2/leagues/seasonsavailable/{league_id}"));
+        }
     }
 }

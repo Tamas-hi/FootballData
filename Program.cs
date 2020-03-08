@@ -22,9 +22,6 @@ namespace FootballData
         public static string Identity = null;
         public static void Main(string[] args)
         {
-            // init 
-            //var rootWikiLeague = new Service().GetIdentifiers();
-            // var rootApiLeague = new Service().GetLeagues(2);
             PrintRow("Wikidata", "Football API");
 
             Console.Write("Enter Wikidata league name: ");
@@ -105,34 +102,39 @@ namespace FootballData
             {
                 Identity = GetEntityIdBySearch(wikiTeamName);
                 var rootEntity = new Service().GetEntityObject(Identity);
-                // Console.WriteLine(rootEntity.Entities.ID.Labels.En.Value);
+                var labels = rootEntity.Entities.ID.Labels.En;
+                var claims = rootEntity.Entities.ID.Claims;
+                PropertyInfo[] properties = typeof(En).GetProperties();
+
+              
+
+                foreach (PropertyInfo property in properties)
+                {
+                    Console.WriteLine(property.Name + "\t" + property.GetValue(labels));
+                }
             }
             else if (value == "api")
             {
                 var league_id = GetLeagueIdBySearch(wikiTeamName);
-                var rootLeague = new Service().GetLeagues(league_id);
+                var rootLeague = new Service().GetSeasonsFromLeague(league_id); // összes a ligához tartozó season
                 var apiLeague = rootLeague.api;
                 var leagues = apiLeague.leagues;
                 //Console.WriteLine(leagues.First().league_id);
-                bool firstOccurence = true;
 
-                var rootEntity = new Service().GetLeaguesFromSeason(ApiSeasonNumber);
-                foreach (var league in rootEntity.api.leagues)
+
+                foreach (var league in leagues)//rootEntity.api.leagues)
                 {
-                    if (league.league_id == leagues.First().league_id)
+                    if (league.season.ToString() == ApiSeasonNumber)
                     {
-
                         PropertyInfo[] properties = typeof(League).GetProperties();
 
-                        if (firstOccurence)
+                        foreach (PropertyInfo property in properties)
                         {
-                            foreach (PropertyInfo property in properties)
-                            {
-                                Console.WriteLine(property.Name + "\t" + property.GetValue(league));
-                            }
-                            firstOccurence = false;
+                            Console.WriteLine(property.Name + "\t" + property.GetValue(league)); // csak a kiválasztott liga
                         }
+
                     }
+
                 }
             }
 
