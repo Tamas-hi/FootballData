@@ -10,9 +10,8 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using WikiClientLibrary;
 using WikiClientLibrary.Client;
-using WikiClientLibrary.Pages;
-using WikiClientLibrary.Pages.Queries.Properties;
 using WikiClientLibrary.Sites;
+using WikiClientLibrary.Wikibase;
 
 namespace FootballData
 {
@@ -22,7 +21,9 @@ namespace FootballData
         public static string Identity = null;
         public static void Main(string[] args)
         {
-            PrintRow("Wikidata", "Football API");
+            MainAsync().Wait();
+
+            /*PrintRow("Wikidata", "Football API");
 
             Console.Write("Enter Wikidata league name: ");
             string wikiLeagueName = Console.ReadLine();
@@ -33,8 +34,8 @@ namespace FootballData
             Console.Write("Enter Football API league name: ");
             string APILeagueName = Console.ReadLine();
             string APISeasonNumber = new String(APILeagueName.Where(Char.IsDigit).ToArray()).Substring(0, 4);
-            APILeagueName = new string(APILeagueName.Where(ch => !Char.IsDigit(ch)).ToArray()).Trim();
-            GetEntityData(APILeagueName, "api", APISeasonNumber);
+            APILeagueName = new string(APILeagueName.Where(ch => !Char.IsDigit(ch)).ToArray()).Trim();*/
+            //GetEntityData(APILeagueName, "api", APISeasonNumber);
 
 
 
@@ -69,6 +70,52 @@ namespace FootballData
             //GetRounds();
             //GetQPsFromWikidata();
         }
+
+        private static async Task MainAsync()
+        {
+            var client = new WikiClient
+            {
+                ClientUserAgent = "Hargitomi"
+            };
+
+            var site = new WikiSite(client, "https://www.wikidata.org/w/api.php");
+            await site.Initialization;
+            try
+            {
+                await site.LoginAsync("Hargitomi", "Toloszekes4489");
+            }
+            catch (WikiClientException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            var entity = new Entity(site, "Q39052816");
+            await entity.RefreshAsync(EntityQueryOptions.FetchAllProperties);
+            Console.WriteLine(entity.Labels["en"]);
+            Console.WriteLine(entity.Descriptions["en"]);
+
+            foreach (var claim in entity.Claims)
+            {
+                try
+                {
+                    Console.WriteLine("  {0} = {1}", claim.MainSnak.PropertyId, claim.MainSnak.DataValue);
+                    // Show references
+                    foreach (var reference in claim.References)
+                    {
+                        Console.WriteLine("    Reference: {0}", reference.Hash);
+                        foreach (var snak in reference.Snaks)
+                        {
+                            Console.WriteLine("      {0} = {1}", snak.PropertyId, snak.DataValue);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
+        }
+
 
         private static string GetEntityIdBySearch(string wikiTeamName) // wiki
         {
@@ -106,20 +153,22 @@ namespace FootballData
                 var claims = rootEntity.Entities.ID.Claims;
                 PropertyInfo[] properties = typeof(En).GetProperties();
 
-              
+
 
                 foreach (PropertyInfo property in properties)
                 {
                     Console.WriteLine(property.Name + "\t" + property.GetValue(labels));
                 }
             }
+
+
+
             else if (value == "api")
             {
                 var league_id = GetLeagueIdBySearch(wikiTeamName);
                 var rootLeague = new Service().GetSeasonsFromLeague(league_id); // összes a ligához tartozó season
                 var apiLeague = rootLeague.api;
                 var leagues = apiLeague.leagues;
-                //Console.WriteLine(leagues.First().league_id);
 
 
                 foreach (var league in leagues)//rootEntity.api.leagues)
