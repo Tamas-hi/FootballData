@@ -6,7 +6,9 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using WikiClientLibrary;
 using WikiClientLibrary.Client;
@@ -19,60 +21,27 @@ namespace FootballData
     {
         static int tableWidth = 150;
         public static string Identity = null;
+        MatchData wiki = new MatchData();
+        MatchData API = new MatchData();
+
+
         public static void Main(string[] args)
         {
-            MainAsync().Wait();
+            PrintRow("Wikidata", "Football API");
 
-            /*PrintRow("Wikidata", "Football API");
-
-            Console.Write("Enter Wikidata league name: ");
-            string wikiLeagueName = Console.ReadLine();
-            wikiLeagueName = wikiLeagueName.Replace(' ', '_');
-            GetEntityData(wikiLeagueName, "wiki");
+            Console.Write("Enter Wikidata Entity ID: ");
+            string WikiId = Console.ReadLine();
+            MainAsync(WikiId).Wait();
 
 
-            Console.Write("Enter Football API league name: ");
-            string APILeagueName = Console.ReadLine();
-            string APISeasonNumber = new String(APILeagueName.Where(Char.IsDigit).ToArray()).Substring(0, 4);
-            APILeagueName = new string(APILeagueName.Where(ch => !Char.IsDigit(ch)).ToArray()).Trim();*/
-            //GetEntityData(APILeagueName, "api", APISeasonNumber);
-
-
-
-            /*var firstRow = "League name with season:" + "\t\t\t" + GetLeagueFromWiki(0) + "\t\t\t\t\t" + GetLeagueFromAPI(0);
-            var secondRow = "Description:" + "\t\t\t\t\t" + GetLeagueFromWiki(1) + "\t\t\t" + "No description in FootballAPI";
-            var thirdRow = "Sports season or league or competition:" + "\t\t" + GetLeagueFromWiki(2) + "\t\t\t\t\t\t" + GetLeagueFromAPI(2);
-            var fourthRow = "Follows:" + "\t\t\t\t\t" + GetLeagueFromWiki(3) + "\t\t\t\t" + "Previous season can be found with a specific league ID (37)";
-            var fifthRow = "Followed By:" + "\t\t\t\t\t" + GetLeagueFromWiki(4) + "\t\t\t\t" + "Next season can be found with a specific league ID (524)";
-            var sixthRow = "Country: " + "\t\t\t\t\t" + GetLeagueFromWiki(5) + "\t\t\t\t\t" + GetLeagueFromAPI(5);
-            var seventhRow = "Edition: " + "\t\t\t\t\t\t" + GetLeagueFromWiki(6) + "\t\t\t\t\t" + "No edition number in FootballAPI";
-            var eighthRow = "Sport: " + "\t\t\t\t\t\t" + GetLeagueFromWiki(7) + "\t\t\t\t" + "No sport type in FootballAPI";
-            var ninethRow = "Start time: " + "\t\t\t\t\t" + GetLeagueFromWiki(8) + "\t\t\t\t" + GetLeagueFromAPI(8);
-            var tenthRow = "End time: " + "\t\t\t\t\t" + GetLeagueFromWiki(9) + "\t\t\t\t" + GetLeagueFromAPI(9);
-            var eleventhRow = "Time period: " + "\t\t\t\t\t" + GetLeagueFromWiki(10) + "\t\t\t\t" + GetLeagueFromAPI(8).Year + "-" + GetLeagueFromAPI(9).Year;
-            var twelvethRow = "Organizer:" + "\t\t\t\t\t" + GetLeagueFromWiki(2) + "\t\t\t\t\t" + GetLeagueFromAPI(2);
-            var thirteenthRow = "Number of participants:" + "\t\t\t\t" + GetLeagueFromWiki(11) + "\t\t\t\t\t\t\t" + GetLeagueFromAPI(11);
-            Console.WriteLine(firstRow);
-            Console.WriteLine(secondRow);
-            Console.WriteLine(thirdRow);
-            Console.WriteLine(fourthRow);
-            Console.WriteLine(fifthRow);
-            Console.WriteLine(sixthRow);
-            Console.WriteLine(seventhRow);
-            Console.WriteLine(eighthRow);
-            Console.WriteLine(ninethRow);
-            Console.WriteLine(tenthRow);
-            Console.WriteLine(eleventhRow);
-            Console.WriteLine(twelvethRow);
-            Console.WriteLine(thirteenthRow);*/
-            //GetStandings();
-            //GetFixturesByRounds();
-            //GetRounds();
-            //GetQPsFromWikidata();
+            //Console.Write("Enter Football API league ID: ");
+            // string APILeagueId = Console.ReadLine();
+            //GetEntityData(int.Parse(APILeagueId));
         }
 
-        private static async Task MainAsync()
+        private static async Task MainAsync(string id) // Wiki
         {
+            MatchData wiki = new MatchData();
             var client = new WikiClient
             {
                 ClientUserAgent = "Hargitomi"
@@ -89,214 +58,118 @@ namespace FootballData
                 Console.WriteLine(ex.Message);
             }
 
-            var entity = new Entity(site, "Q39052816");
-            await entity.RefreshAsync(EntityQueryOptions.FetchAllProperties);
-            Console.WriteLine(entity.Labels["en"]);
-            Console.WriteLine(entity.Descriptions["en"]);
 
-            foreach (var claim in entity.Claims)
+            var entity = new Entity(site, id);
+            await entity.RefreshAsync(EntityQueryOptions.FetchClaims);
+            Dictionary<string, string> IdNamePairs = new Dictionary<string, string>();
+            var data = new Service().GetEntityNames();
+
+            string keys = "";
+
+            foreach (dynamic claim in entity.Claims)
             {
                 try
                 {
-                    Console.WriteLine("  {0} = {1}", claim.MainSnak.PropertyId, claim.MainSnak.DataValue);
-                    // Show references
-                    foreach (var reference in claim.References)
-                    {
-                        Console.WriteLine("    Reference: {0}", reference.Hash);
-                        foreach (var snak in reference.Snaks)
-                        {
-                            Console.WriteLine("      {0} = {1}", snak.PropertyId, snak.DataValue);
-                        }
-                    }
+                    //IdNamePairs.TryAdd(claim.MainSnak.PropertyId, claim.MainSnak.RawDataValue.value.amount);
+
+                    IdNamePairs.TryAdd(claim.ToString().Substring(0, claim.ToString().IndexOf("=")).Trim(), claim.MainSnak.DataValue.ToString());
+                }
+                catch (Exception e) { }
+                try
+                {
+                    if (!(claim.ToString().Contains("-")))
+                        keys += claim.ToString() + "|";
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.Message);
+
                 }
             }
-        }
 
 
-        private static string GetEntityIdBySearch(string wikiTeamName) // wiki
-        {
-            var rootEntity = new Service().GetEntityIdBySearch(wikiTeamName);
-            var entity = rootEntity.Search;
-            foreach (var property in entity)
+            StringBuilder sb = new StringBuilder();
+            foreach (char c in keys)
             {
-                return property.Title; // label ha a név kell
+                if (!(c == '=') && !(c == ' '))
+                {
+                    sb.Append(c);
+                }
             }
-            return null;
+            keys = sb.ToString();
+            keys = keys.Replace("Q", "|Q");
+
+            var allKeys = keys.Split('|');
+
+            var noDuplicates = new HashSet<string>(allKeys);
+
+            var noDuplicatesKeys = string.Join("|", noDuplicates);
+
+            noDuplicatesKeys = noDuplicatesKeys.Remove(noDuplicatesKeys.Length - 1);
+
+            Dictionary<string, string> asdIdNamePairs = new Dictionary<string, string>();
+            dynamic datax = new Service().GetEntityNames(noDuplicatesKeys);
+            try
+            {
+                foreach (var x in datax)
+                {
+                    foreach (var y in x)
+                    {
+                        if (y is JObject)
+                            foreach (var z in y)
+                            {
+                                foreach (var w in z)
+                                {
+                                    try
+                                    {
+                                        asdIdNamePairs.Add(w.id.ToString().Trim(), w.labels.en.value.ToString().Trim());
+                                    }
+                                    catch (Exception e)
+                                    {
+
+                                    }
+                                }
+                            }
+                    }
+                }
+            }
+            catch (Exception e) { }
+
+            /* foreach(KeyValuePair<string, string> kvp in IdNamePairs)
+             {
+                 Console.WriteLine(kvp.Key);
+             }*/
+
+            var temp = IdNamePairs["P3450"];
+            wiki.LeagueName = asdIdNamePairs[temp.ToString()];
+            Console.WriteLine(wiki.LeagueName);
+            temp = IdNamePairs["P2348"];
+            wiki.LeagueSeason = asdIdNamePairs[temp.ToString()];
+            Console.WriteLine(wiki.LeagueSeason);
+            temp = IdNamePairs["P17"];
+            wiki.Country = asdIdNamePairs[temp.ToString()];
+            Console.WriteLine(wiki.Country);
+            temp = IdNamePairs["P1346"];
+            wiki.Winner = asdIdNamePairs[temp.ToString()];
+            Console.WriteLine(wiki.Winner);
+            temp = IdNamePairs["P2882"];
+            wiki.Relegated = asdIdNamePairs[temp.ToString()];
+            Console.WriteLine(wiki.Relegated);
+
         }
 
-        private static int GetLeagueIdBySearch(string wikiLeagueName) // Football API
+
+        private static string GetEntityData(int league_id) //Football API
         {
-            var rootLeague = new Service().FindLeagueByIdAndSeason(wikiLeagueName);
+            var rootLeague = new Service().GetLeagues(league_id); // a liga
             var apiLeague = rootLeague.api;
-            var leagues = apiLeague.leagues;
-            return leagues.First().league_id;
-        }
+            var leagues = apiLeague.leagues.First();
 
-        public static string GetAllProperties(object obj)
-        {
-            return string.Join(" ", obj.GetType()
-                                        .GetProperties()
-                                        .Select(prop => prop.GetValue(obj)));
-        }
+            PropertyInfo[] properties = typeof(League).GetProperties();
 
-        private static string GetEntityData(string wikiTeamName, string value, string ApiSeasonNumber = null) // wiki || Football API
-        {
-            if (value == "wiki")
+            foreach (PropertyInfo property in properties)
             {
-                Identity = GetEntityIdBySearch(wikiTeamName);
-                var rootEntity = new Service().GetEntityObject(Identity);
-                var labels = rootEntity.Entities.ID.Labels.En;
-                var claims = rootEntity.Entities.ID.Claims;
-                PropertyInfo[] properties = typeof(En).GetProperties();
-
-
-
-                foreach (PropertyInfo property in properties)
-                {
-                    Console.WriteLine(property.Name + "\t" + property.GetValue(labels));
-                }
+                Console.WriteLine(property.Name + "\t" + property.GetValue(leagues)); // csak a kiválasztott liga
             }
-
-
-
-            else if (value == "api")
-            {
-                var league_id = GetLeagueIdBySearch(wikiTeamName);
-                var rootLeague = new Service().GetSeasonsFromLeague(league_id); // összes a ligához tartozó season
-                var apiLeague = rootLeague.api;
-                var leagues = apiLeague.leagues;
-
-
-                foreach (var league in leagues)//rootEntity.api.leagues)
-                {
-                    if (league.season.ToString() == ApiSeasonNumber)
-                    {
-                        PropertyInfo[] properties = typeof(League).GetProperties();
-
-                        foreach (PropertyInfo property in properties)
-                        {
-                            Console.WriteLine(property.Name + "\t" + property.GetValue(league)); // csak a kiválasztott liga
-                        }
-
-                    }
-
-                }
-            }
-
-
-            /*var rootLeague = new Service().GetIdentifiers();
-            var IdNamePairs = GetQPsFromWikidata();
-            foreach (var entityList in rootLeague)
-            {
-                foreach (var entity in entityList)
-                {
-                    foreach (var data in entity)
-                    {
-                        foreach (var subData in data)
-                        {
-                            if (chooser == 0)
-                                return subData.labels.en.value;
-                            if (chooser == 1)
-                                return subData.descriptions.en.value;
-                            if (chooser == 2 || chooser == 3 || chooser == 4)
-                            {
-                                foreach (var claim in subData.claims.P3450)
-                                {
-                                    if (chooser == 2)
-                                    {
-                                        dynamic ID = claim.mainsnak.datavalue.value.id;
-                                        var ProcessedData = IdNamePairs[ID];
-                                        return ProcessedData;
-                                    }
-                                    if (chooser == 3)
-                                    {
-                                        foreach (var qualifier in claim.qualifiers.P155)
-                                        {
-                                            dynamic ID = qualifier.datavalue.value.id;
-                                            var ProcessedData = IdNamePairs[ID];
-                                            return ProcessedData;
-                                        }
-                                    }
-                                    if (chooser == 4)
-                                    {
-                                        foreach (var qualifier in claim.qualifiers.P156)
-                                        {
-                                            dynamic ID2 = qualifier.datavalue.value.id;
-                                            var ProcessedData2 = IdNamePairs[ID2];
-                                            return ProcessedData2;
-                                        }
-                                    }
-                                }
-                            }
-                            if (chooser == 5)
-                            {
-                                foreach (var claim in subData.claims.P17)
-                                {
-                                    dynamic ID = claim.mainsnak.datavalue.value.id;
-                                    var ProcessedData = IdNamePairs[ID];
-                                    return ProcessedData;
-                                }
-                            }
-                            if (chooser == 6)
-                            {
-                                foreach (var claim in subData.claims.P393)
-                                {
-                                    dynamic ID = claim.mainsnak.datavalue.value;
-                                    return ID;
-                                }
-                            }
-                            if (chooser == 7)
-                            {
-                                foreach (var claim in subData.claims.P641)
-                                {
-                                    dynamic ID = claim.mainsnak.datavalue.value.id;
-                                    var ProcessedData = IdNamePairs[ID];
-                                    return ProcessedData;
-                                }
-                            }
-                            if (chooser == 8)
-                            {
-                                foreach (var claim in subData.claims.P580)
-                                {
-                                    dynamic ID = claim.mainsnak.datavalue.value.time;
-                                    return ID;
-                                }
-                            }
-
-                            if (chooser == 9)
-                            {
-                                foreach (var claim in subData.claims.P582)
-                                {
-                                    dynamic ID = claim.mainsnak.datavalue.value.time;
-                                    return ID;
-                                }
-                            }
-                            if (chooser == 10)
-                            {
-                                foreach (var claim in subData.claims.P2348)
-                                {
-                                    dynamic ID = claim.mainsnak.datavalue.value.id;
-                                    var ProcessedData = IdNamePairs[ID];
-                                    return ProcessedData;
-                                }
-                            }
-                            if (chooser == 11)
-                            {
-                                foreach (var claim in subData.claims.P1132)
-                                {
-                                    dynamic ID = claim.mainsnak.datavalue.value.amount;
-                                    return ID;
-                                }
-                            }
-
-                        }
-                    }
-                }
-            }*/
             return null;
         }
 
@@ -334,11 +207,11 @@ namespace FootballData
             return null;
         }
 
-        public static Dictionary<dynamic, dynamic> GetQPsFromWikidata()
+        public static Dictionary<string, string> GetQPsFromWikidata(string id)
         {
-            Dictionary<dynamic, dynamic> IdNamePairs = new Dictionary<dynamic, dynamic>();
+            Dictionary<string, string> IdNamePairs = new Dictionary<string, string>();
 
-            dynamic result = new Service().GetIdentifiers();
+            dynamic result = new Service().GetIdentifiers(id);
 
             foreach (Match match in Regex.Matches(result.ToString(), @"(?<!\w)Q\d\w+"))
             {
@@ -358,7 +231,6 @@ namespace FootballData
             }
 
             var x = string.Format("{0}", string.Join("|", IdNamePairs.Keys));
-            //Console.WriteLine(x);
 
             var entityNames = new Service().GetEntityNames(x);
 
@@ -381,44 +253,6 @@ namespace FootballData
             return IdNamePairs;
         }
 
-        public static List<string> GetRounds()
-        {
-            var rootRounds = new Service().GetRounds(2);
-            var apiRounds = rootRounds.api;
-            var round = apiRounds.fixtures;
-
-            return round;
-        }
-
-
-
-        public static void GetStandings()
-        {
-            var rootStandings = new Service().GetStandings(2); // 2018/2019 Premier League
-            var apiStandings = rootStandings.api;
-            var standings = apiStandings.standings;
-            foreach (var s in standings)
-            {
-                foreach (var t in s)
-                {
-                    Console.WriteLine(t.teamName + "\t\t\t" + t.all.win + "\t\t" + t.all.draw + "\t\t" + t.all.lose + "\t\t" + "\t" + t.points);
-                }
-            }
-        }
-
-        public static void GetFixturesByRounds()
-        {
-            var allRounds = GetRounds();
-            var round = allRounds[37];
-            var rootFixtures = new Service().GetFixturesByRound(2, round); // 2018/2019 Premier League - last round
-            var apiFixtures = rootFixtures.api;
-            var fixtures = apiFixtures.fixtures;
-
-            foreach (var f in fixtures)
-            {
-                Console.WriteLine(f.homeTeam.team_name + " - " + f.awayTeam.team_name + "\t\t" + f.score.fulltime);
-            }
-        }
 
         static void PrintRow(params string[] columns)
         {
@@ -445,6 +279,55 @@ namespace FootballData
             {
                 return text.PadRight(width - (width - text.Length) / 2).PadLeft(width);
             }
+        }
+
+        public static string GetAllProperties(object obj)
+        {
+            return string.Join(" ", obj.GetType()
+                                        .GetProperties()
+                                        .Select(prop => prop.GetValue(obj)));
+        }
+
+        public static void GetFixturesByRounds()
+        {
+            var allRounds = GetRounds();
+            var round = allRounds[37];
+            var rootFixtures = new Service().GetFixturesByRound(2, round); // 2018/2019 Premier League - last round
+            var apiFixtures = rootFixtures.api;
+            var fixtures = apiFixtures.fixtures;
+
+            foreach (var f in fixtures)
+            {
+                Console.WriteLine(f.homeTeam.team_name + " - " + f.awayTeam.team_name + "\t\t" + f.score.fulltime);
+            }
+        }
+
+        public static List<string> GetRounds()
+        {
+            var rootRounds = new Service().GetRounds(2);
+            var apiRounds = rootRounds.api;
+            var round = apiRounds.fixtures;
+
+            return round;
+        }
+
+        private static string GetEntityIdBySearch(string wikiTeamName) // wiki
+        {
+            var rootEntity = new Service().GetEntityIdBySearch(wikiTeamName);
+            var entity = rootEntity.Search;
+            foreach (var property in entity)
+            {
+                return property.Title; // label ha a név kell
+            }
+            return null;
+        }
+
+        private static int GetLeagueIdBySearch(string wikiLeagueName) // Football API
+        {
+            var rootLeague = new Service().FindLeagueByIdAndSeason(wikiLeagueName);
+            var apiLeague = rootLeague.api;
+            var leagues = apiLeague.leagues;
+            return leagues.First().league_id;
         }
     }
 }

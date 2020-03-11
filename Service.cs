@@ -48,11 +48,11 @@ namespace FootballData
             if (response.IsSuccessful)
             {
                 var json = response.Content;
-                T r = JsonConvert.DeserializeObject<T>(json, new JsonSerializerSettings()
+                T r = JsonConvert.DeserializeObject<T>(json);/*, new JsonSerializerSettings()
                 {
                     ContractResolver = new CustomResolver()
                 }
-                );
+                );*/
                 return r;
             }
             else
@@ -61,9 +61,9 @@ namespace FootballData
             }
         }
 
-        public dynamic GetIdentifiers()
+        public dynamic GetIdentifiers(string id)
         {
-            return GetDataFromWikidata<dynamic>(new Uri("http://www.wikidata.org/entity/Q39052816.json"));
+            return GetDataFromWikidata<dynamic>(new Uri("http://www.wikidata.org/entity/{id}.json"));
         }
 
         public dynamic GetEntityNames(string allKeysSeparated = "")
