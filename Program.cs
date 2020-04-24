@@ -23,11 +23,12 @@ namespace FootballData
         public static MatchData API = new MatchData();
         public static int allGoals = 0;
         public static bool flag = false;
+        public static List<Tuple<string, string, int>> distanceList = new List<Tuple<string, string, int>>();
 
         public static void Main(string[] args)
         {
             PrintRow("Wikidata", "Football API");
-            wiki.Teams = new Dictionary<int, string>();
+            wiki.Teams = new List<KeyValuePair<int, Team>>(); // ranking - team
             wiki.Relegated = new List<string>();
             Console.Write("Enter Wikidata Entity ID: ");
             string WikiId = Console.ReadLine();
@@ -35,11 +36,11 @@ namespace FootballData
             MainAsync(WikiId).Wait();
 
 
-            /* Console.Write("Enter Football API league ID: ");
-             API.Teams = new List<string>();
-             API.Relegated = new List<string>();
-             string APILeagueId = Console.ReadLine();
-             GetLeagueFromAPI(int.Parse(APILeagueId));*/
+            Console.Write("Enter Football API league ID: ");
+            API.Teams = new List<KeyValuePair<int, Team>>();
+            API.Relegated = new List<string>();
+            string APILeagueId = Console.ReadLine();
+            GetLeagueFromAPI(int.Parse(APILeagueId));
 
 
             MatchData(wiki, API);
@@ -85,8 +86,8 @@ namespace FootballData
                             {
                                 if (flag == false)
                                 {
-                                    IdValuePairs.Add(new KeyValuePair<string, string>(claim.MainSnak.PropertyId, claim.MainSnak.DataValue.ToString()));
-                                    IdValuePairs.Add(new KeyValuePair<string, string>(claim.MainSnak.DataValue.ToString(), (string)json.value.amount));
+                                    IdValuePairs.Add(new KeyValuePair<string, string>(claim.MainSnak.PropertyId, claim.MainSnak.DataValue.ToString())); // property - csapat ID
+                                    IdValuePairs.Add(new KeyValuePair<string, string>(claim.MainSnak.DataValue.ToString(), (string)json.value.amount)); // csapat ID - qualifier
                                     keys.Add(claim.MainSnak.DataValue.ToString());
                                     flag = true;
                                 }
@@ -205,20 +206,23 @@ namespace FootballData
             {
                 foreach (string subKey in temp[key])
                 {
-                        // teamName
-                        string teamName = RealIdNamePairs[key];
-                        // ranking
-                        string ranking = subKey;
-                        ranking.Remove(0, 1);
-                        int rank = int.Parse(ranking);
-                        wiki.Teams.Add(rank, teamName);
+                    // teamName
+                    string teamName = RealIdNamePairs[key];
+                    // ranking
+                    string ranking = subKey;
+                    ranking.Remove(0, 1);
+                    int rank = int.Parse(ranking);
+                   // Console.WriteLine(rank);
+                    Team team = new Team();
+                    team.teamName = teamName;
+                    wiki.Teams.Add(new KeyValuePair<int, Team>(rank, team));
                 }
 
             }
 
-            foreach(KeyValuePair<int, string> kvp in wiki.Teams)
+            foreach (var team in wiki.Teams)
             {
-                Console.WriteLine(kvp.Key + " " + kvp.Value);
+                // Console.WriteLine(kvp.Key + " " + kvp.Value);
             }
             foreach (var team in wiki.Teams)
             {
@@ -278,10 +282,15 @@ namespace FootballData
                 API.Relegated.Add(lastTeam.teamName);
                 API.Relegated.Add(lastButOneTeam.teamName);
                 API.Relegated.Add(lastButOneButOneTeam.teamName);
-
+                int i = 1;
                 foreach (var team in standing)
                 {
-                   // API.Teams.Add(team.teamName);
+                    // addedTeam.all.goalsFor = team.all.goalsFor;
+                    //Console.WriteLine(team.points + " " + team.venue_name);
+                    Team addedTeam = new Team();
+                    addedTeam.teamName = team.teamName;
+                    addedTeam.rank = team.rank;
+                    API.Teams.Add(new KeyValuePair<int, Team>(team.rank, addedTeam));
                 }
             }
             API.numberOfTeams = API.Teams.Count().ToString();
@@ -292,146 +301,131 @@ namespace FootballData
         private static void MatchData(MatchData wiki, MatchData API)
         {
             LevenshteinDistance(wiki, API);
+            var result = distanceList;//GroupBy(item => item.Item1)
+                                      //.Select(g => g.OrderBy(t => t.Item3).First()).ToList();
+
+            
+
+            foreach (var x in result)
+            {
+                Console.WriteLine(x);
+            }
+
         }
+
+
 
         /// <summary>
         /// Compute the distance between two strings.
         /// </summary>
         public static int LevenshteinDistance<T>(T self, T to, params string[] ignore) where T : class
         {
+            List<string> selfPropertyValues = new List<string>();
+            List<string> toPropertyValues = new List<string>();
+            int n, m;
             if (self != null && to != null)
             {
                 Type type = typeof(T);
+
                 List<string> ignoreList = new List<string>(ignore);
                 foreach (PropertyInfo pi in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {
-                    if (!ignoreList.Contains(pi.Name))
+                    object selfValue = type.GetProperty(pi.Name).GetValue(self, null); // wiki property érték
+                    object toValue = type.GetProperty(pi.Name).GetValue(to, null); // API property érték
+
+                    object selfType = type.GetProperty(pi.Name).PropertyType; // a property típusa
+
+
+                    if((Type)selfType == typeof(List<KeyValuePair<int, Team>>))
                     {
-                        object selfValue = type.GetProperty(pi.Name).GetValue(self, null); // wiki property érték
-                        object toValue = type.GetProperty(pi.Name).GetValue(to, null); // API property érték
-
-
-                        object selfType = type.GetProperty(pi.Name).PropertyType; // a property típusa
-
-                        int n;
-                        int m;
-                        // listák elemeinek összehasonlítása
-                        if ((Type)selfType == typeof(List<string>))
+                        foreach(KeyValuePair<int, Team> kvp in (List<KeyValuePair<int,Team>>)selfValue)
                         {
-                            List<string> selfTeams = (List<string>)selfValue;
-                            List<string> toTeams = (List<string>)toValue;
-
-                            for (int a = 0; a < selfTeams.Count; a++)
+                            foreach(KeyValuePair<int, Team> kvp1 in (List<KeyValuePair<int, Team>>)toValue)
                             {
-                                n = selfTeams[a].Length;
-                                selfTeams.Sort();
-                                m = toTeams[a].Length;
-                                toTeams.Sort();
-                                int[,] d = new int[n + 1, m + 1];
-
-                                // Step 1
-                                if (n == 0)
+                                if(kvp.Key == kvp1.Key)
                                 {
-                                    return m;
-                                }
-
-                                if (m == 0)
-                                {
-                                    return n;
-                                }
-
-                                // Step 2
-                                for (int i = 0; i <= n; d[i, 0] = i++)
-                                {
-                                }
-
-                                for (int j = 0; j <= m; d[0, j] = j++)
-                                {
-                                }
-
-                                // Step 3
-                                for (int i = 1; i <= n; i++)
-                                {
-                                    //Step 4
-                                    for (int j = 1; j <= m; j++)
-                                    {
-                                        // Step 5
-                                        int cost = (toValue.ToString().Trim()[j - 1] == selfValue.ToString().Trim()[i - 1]) ? 0 : 1;
-
-                                        // Step 6
-                                        d[i, j] = Math.Min(
-                                            Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
-                                            d[i - 1, j - 1] + cost);
-                                    }
-                                }
-                                // Step 7
-                                Console.WriteLine(selfTeams[a] + " " + toTeams[a] + " " + (d[n, m]));
-                                //return d[n, m];                      
-                            }
-                        }
-
-                        // nem lista elemek összehasonlítása
-                        else
-                        {
-                            n = selfValue.ToString().Length;
-                            m = toValue.ToString().Length;
-                            int[,] d = new int[n + 1, m + 1];
-
-                            // Step 1
-                            if (n == 0)
-                            {
-                                return m;
-                            }
-
-                            if (m == 0)
-                            {
-                                return n;
-                            }
-
-                            // Step 2
-                            for (int i = 0; i <= n; d[i, 0] = i++)
-                            {
-                            }
-
-                            for (int j = 0; j <= m; d[0, j] = j++)
-                            {
-                            }
-
-                            // Step 3
-                            for (int i = 1; i <= n; i++)
-                            {
-                                //Step 4
-                                for (int j = 1; j <= m; j++)
-                                {
-                                    // Step 5
-                                    int cost = (toValue.ToString().Trim()[j - 1] == selfValue.ToString().Trim()[i - 1]) ? 0 : 1;
-
-                                    // Step 6
-                                    d[i, j] = Math.Min(
-                                        Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
-                                        d[i - 1, j - 1] + cost);
+                                    var tuple = Tuple.Create(kvp.Value.teamName, kvp1.Value.teamName, 0);
+                                    distanceList.Add(tuple);
                                 }
                             }
-                            // Step 7
-                            Console.WriteLine(selfValue + " " + toValue + " " + (d[n, m]));
-                            //return d[n, m];
                         }
                     }
+
+
+                    if ((Type)selfType == typeof(List<string>))
+                    {
+                        foreach (var team in (List<string>)selfValue)
+                        {
+                            selfPropertyValues.Add(team);
+                        }
+
+                        foreach (var team in (List<string>)toValue)
+                        {
+                            toPropertyValues.Add(team);
+                        }
+                    }
+
                     else
                     {
-                        return 100;
+                        selfPropertyValues.Add(selfValue.ToString());
+                        toPropertyValues.Add(toValue.ToString());
                     }
                 }
-                return 100;
             }
-            else
+
+            /*for (int i = 0; i < selfPropertyValues.Count; i++)
             {
-                return 100;
-            }
+                for (int j = 0; j < toPropertyValues.Count; j++)
+                {
+                    n = selfPropertyValues[i].Length;
+                    m = toPropertyValues[j].Length;
+
+                    int[,] d = new int[n + 1, m + 1];
+
+                    // Step 1
+                    if (n == 0)
+                    {
+                        return m;
+                    }
+
+                    if (m == 0)
+                    {
+                        return n;
+                    }
+
+                    // Step 2
+                    for (int a = 0; a <= n; d[a, 0] = a++)
+                    {
+                    }
+
+                    for (int b = 0; b <= m; d[0, b] = b++)
+                    {
+                    }
+
+                    // Step 3
+                    for (int a = 1; a <= n; a++)
+                    {
+                        //Step 4
+                        for (int b = 1; b <= m; b++)
+                        {
+                            // Step 5
+                            int cost = ((toPropertyValues[j])[b - 1]) == ((selfPropertyValues[i])[a - 1]) ? 0 : 1;
+
+                            // Step 6
+                            d[a, b] = Math.Min(
+                                Math.Min(d[a - 1, b] + 1, d[a, b - 1] + 1),
+                                d[a - 1, b - 1] + cost);
+                        }
+                    }
+                    // Step 7
+
+                    var tuple = Tuple.Create(selfPropertyValues[i], toPropertyValues[j], d[n, m]);
+                    distanceList.Add(tuple);
+                    //return d[n, m];             
+                }
+            }*/
+            return 100;
         }
-
-
-
 
         private static string GetEntityData(int league_id)
         {

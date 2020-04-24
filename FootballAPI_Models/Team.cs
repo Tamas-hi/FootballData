@@ -19,6 +19,7 @@ namespace FootballData
         public string venue_address { get; set; }
         public string venue_city { get; set; }
         public int venue_capacity { get; set; }
+        public int rank { get; set; }
         public int points { get; set; }
         public AllApi all { get; set; }
     }
@@ -29,6 +30,8 @@ namespace FootballData
         public int win { get; set; }
         public int draw { get; set; }
         public int lose { get; set; }
+        public int goalsFor { get; set; }
+        public int goalsAgainst { get; set; }
     }
 
     public class TeamApi
