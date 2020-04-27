@@ -86,7 +86,7 @@ namespace FootballData
         /// <returns></returns>
         public RootTeamObject GetTeams(int league_id)
         {
-            return GetDataFromFootballApi<RootTeamObject>(new Uri(serverUrl, $"/v2/teams/league/{league_id}/"));
+            return GetDataFromFootballApi<RootTeamObject>(new Uri(serverUrl, $"/v2/teams/league/{league_id}"));
         }
 
         public RootStandingObject GetStandings(int league_id)

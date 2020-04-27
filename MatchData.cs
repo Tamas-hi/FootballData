@@ -12,9 +12,9 @@ namespace FootballData
         public string SeasonStart { get; set; }
         public string SeasonEnd { get; set; }
         public string numberOfTeams { get; set; }
-        public List<KeyValuePair<int, Team>> Teams { get; set; }
+        public List<Team> Teams { get; set; }
         public string Winner { get; set; }
-        public List<string> Relegated { get; set; }
+        public List<Team> Relegated { get; set; }
         public string numberOfMatches { get; set; }
         public string numberOfGoals { get; set; }
 

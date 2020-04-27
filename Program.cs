@@ -25,11 +25,12 @@ namespace FootballData
         public static bool flag = false;
         public static List<Tuple<string, string, int>> distanceList = new List<Tuple<string, string, int>>();
 
+        // kell még létrehozni egy műveletet, ami az összes csapat ID azonosítóját kimenti és azokra lekérdeznia csapat adatokat.
         public static void Main(string[] args)
         {
             PrintRow("Wikidata", "Football API");
-            wiki.Teams = new List<KeyValuePair<int, Team>>(); // ranking - team
-            wiki.Relegated = new List<string>();
+            wiki.Teams = new List<Team>(); // ranking - team
+            wiki.Relegated = new List<Team>();
             Console.Write("Enter Wikidata Entity ID: ");
             string WikiId = Console.ReadLine();
             // átadjuk a megadott ID-t
@@ -37,8 +38,8 @@ namespace FootballData
 
 
             Console.Write("Enter Football API league ID: ");
-            API.Teams = new List<KeyValuePair<int, Team>>();
-            API.Relegated = new List<string>();
+            API.Teams = new List<Team>();
+            API.Relegated = new List<Team>();
             string APILeagueId = Console.ReadLine();
             GetLeagueFromAPI(int.Parse(APILeagueId));
 
@@ -87,7 +88,7 @@ namespace FootballData
                                 if (flag == false)
                                 {
                                     IdValuePairs.Add(new KeyValuePair<string, string>(claim.MainSnak.PropertyId, claim.MainSnak.DataValue.ToString())); // property - csapat ID
-                                    IdValuePairs.Add(new KeyValuePair<string, string>(claim.MainSnak.DataValue.ToString(), (string)json.value.amount)); // csapat ID - qualifier
+                                    IdValuePairs.Add(new KeyValuePair<string, string>(claim.MainSnak.DataValue.ToString(), (string)json.value.amount)); // csapat ID - ranking
                                     keys.Add(claim.MainSnak.DataValue.ToString());
                                     flag = true;
                                 }
@@ -112,7 +113,7 @@ namespace FootballData
                     dynamic json = JsonConvert.DeserializeObject(claim.MainSnak.RawDataValue.ToString());
                     if (json.value.amount != null)
                     {
-                        IdValuePairs.Add(new KeyValuePair<string, string>(claim.MainSnak.PropertyId, (string)json.value.amount));
+                        IdValuePairs.Add(new KeyValuePair<string, string>(claim.MainSnak.PropertyId, (string)json.value.amount)); //property - amount érték (ahol csak szám van, pl numberOfGoals)
                         keys.Add(claim.MainSnak.PropertyId);
                     }
                 }
@@ -132,8 +133,9 @@ namespace FootballData
             // Összes P és Q, illetve a hozzájuk tartozó label
             Dictionary<string, string> RealIdNamePairs = new Dictionary<string, string>();
 
-
+            
             var datax = new Service().GetEntityNames(allKeys);
+
             try
             {
                 foreach (var x in datax)
@@ -209,13 +211,13 @@ namespace FootballData
                     // teamName
                     string teamName = RealIdNamePairs[key];
                     // ranking
-                    string ranking = subKey;
-                    ranking.Remove(0, 1);
-                    int rank = int.Parse(ranking);
-                   // Console.WriteLine(rank);
+                    //string ranking = subKey;
+                    //ranking.Remove(0, 1);
+                    //int rank = int.Parse(ranking);
+                    // Console.WriteLine(rank);
                     Team team = new Team();
                     team.teamName = teamName;
-                    wiki.Teams.Add(new KeyValuePair<int, Team>(rank, team));
+                    wiki.Teams.Add(team);
                 }
 
             }
@@ -237,7 +239,11 @@ namespace FootballData
 
             foreach (string key in temp["P2882"])
             {
-                wiki.Relegated.Add(RealIdNamePairs[key]);
+                string teamName = RealIdNamePairs[key];
+                Team team = new Team();
+                team.teamName = teamName;
+                wiki.Relegated.Add(team);
+
             }
             foreach (var team in wiki.Relegated)
             {
@@ -270,29 +276,28 @@ namespace FootballData
             API.SeasonStart = leagues.First().season_start;
             API.SeasonEnd = leagues.First().season_end;
 
-            var rootStanding = new Service().GetStandings(league_id);
-            var apiStanding = rootStanding.api;
-            var standings = apiStanding.standings;
-            foreach (var standing in standings)
+
+            var rootTeams = new Service().GetTeams(league_id);
+            var apiTeams = rootTeams.api;
+            var allTeams = apiTeams.teams; // ebbe benne vannak az adatok
+
+            foreach (var team in allTeams)
             {
-                API.Winner = standing.First().teamName;
-                var lastTeam = standing[standing.Count - 1];
-                var lastButOneTeam = standing[standing.Count - 2];
-                var lastButOneButOneTeam = standing[standing.Count - 3];
-                API.Relegated.Add(lastTeam.teamName);
-                API.Relegated.Add(lastButOneTeam.teamName);
-                API.Relegated.Add(lastButOneButOneTeam.teamName);
-                int i = 1;
-                foreach (var team in standing)
-                {
-                    // addedTeam.all.goalsFor = team.all.goalsFor;
-                    //Console.WriteLine(team.points + " " + team.venue_name);
-                    Team addedTeam = new Team();
-                    addedTeam.teamName = team.teamName;
-                    addedTeam.rank = team.rank;
-                    API.Teams.Add(new KeyValuePair<int, Team>(team.rank, addedTeam));
-                }
+                API.Teams.Add(team);
             }
+
+            API.Winner = API.Teams.First().name;
+            var lastTeam = API.Teams[API.Teams.Count - 1];
+            lastTeam.name = API.Teams[API.Teams.Count - 1].name;
+            var lastButOneTeam = API.Teams[API.Teams.Count - 2];
+            lastButOneTeam.name = API.Teams[API.Teams.Count - 2].name;
+            var lastButOneButOneTeam = API.Teams[API.Teams.Count - 3];
+            lastButOneButOneTeam.name = API.Teams[API.Teams.Count - 3].name;
+
+            API.Relegated.Add(lastTeam);
+            API.Relegated.Add(lastButOneTeam);
+            API.Relegated.Add(lastButOneButOneTeam);
+
             API.numberOfTeams = API.Teams.Count().ToString();
             API.numberOfMatches = GetFixtures(league_id).ToString();
             API.numberOfGoals = allGoals.ToString();
@@ -304,17 +309,12 @@ namespace FootballData
             var result = distanceList;//GroupBy(item => item.Item1)
                                       //.Select(g => g.OrderBy(t => t.Item3).First()).ToList();
 
-            
-
-            foreach (var x in result)
+            /*foreach (var x in result)
             {
                 Console.WriteLine(x);
-            }
+            }*/
 
         }
-
-
-
         /// <summary>
         /// Compute the distance between two strings.
         /// </summary>
@@ -336,41 +336,50 @@ namespace FootballData
                     object selfType = type.GetProperty(pi.Name).PropertyType; // a property típusa
 
 
-                    if((Type)selfType == typeof(List<KeyValuePair<int, Team>>))
+                    if ((Type)selfType == typeof(List<Team>))
                     {
-                        foreach(KeyValuePair<int, Team> kvp in (List<KeyValuePair<int,Team>>)selfValue)
+                        foreach (var team in (List<Team>)selfValue)
                         {
-                            foreach(KeyValuePair<int, Team> kvp1 in (List<KeyValuePair<int, Team>>)toValue)
+                            Type myType = team.GetType();
+                            IList<PropertyInfo> props = new List<PropertyInfo>(myType.GetProperties());
+                            foreach (PropertyInfo prop in props)
                             {
-                                if(kvp.Key == kvp1.Key)
-                                {
-                                    var tuple = Tuple.Create(kvp.Value.teamName, kvp1.Value.teamName, 0);
-                                    distanceList.Add(tuple);
-                                }
+                                object propValue = prop.GetValue(team, null);
+                                if (propValue != null)
+                                    selfPropertyValues.Add(propValue.ToString());
                             }
                         }
-                    }
 
-
-                    if ((Type)selfType == typeof(List<string>))
-                    {
-                        foreach (var team in (List<string>)selfValue)
+                        foreach (var team in (List<Team>)toValue)
                         {
-                            selfPropertyValues.Add(team);
-                        }
-
-                        foreach (var team in (List<string>)toValue)
-                        {
-                            toPropertyValues.Add(team);
+                            Type myType = team.GetType();
+                            IList<PropertyInfo> props = new List<PropertyInfo>(myType.GetProperties());
+                            foreach (PropertyInfo prop in props)
+                            {
+                                object propValue = prop.GetValue(team, null);
+                                if (propValue != null)
+                                    toPropertyValues.Add(propValue.ToString());
+                            }
                         }
                     }
 
                     else
                     {
-                        selfPropertyValues.Add(selfValue.ToString());
-                        toPropertyValues.Add(toValue.ToString());
+                         selfPropertyValues.Add(selfValue.ToString());
+                         toPropertyValues.Add(toValue.ToString());
                     }
                 }
+
+                 /*foreach (var element in selfPropertyValues)
+                 {
+                     Console.WriteLine(element);
+                 }
+
+                 foreach (var element in toPropertyValues)
+                 {
+                     Console.WriteLine(element);
+                 }*/
+
             }
 
             /*for (int i = 0; i < selfPropertyValues.Count; i++)
