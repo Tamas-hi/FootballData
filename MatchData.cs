@@ -14,7 +14,7 @@ namespace FootballData
         public string numberOfTeams { get; set; }
         public List<Team> Teams { get; set; }
         public string Winner { get; set; }
-        public List<Team> Relegated { get; set; }
+        //public List<Team> Relegated { get; set; }
         public string numberOfMatches { get; set; }
         public string numberOfGoals { get; set; }
 

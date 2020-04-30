@@ -76,9 +76,9 @@ namespace FootballData
             return GetDataFromWikidata<RootSearchObject>(new Uri($"https://www.wikidata.org/w/api.php?action=wbsearchentities&search={wikiTeamName}&language=en&limit=1&format=json"));
         }
 
-        public Temperatures GetEntityObject(string id)
+        public dynamic GetEntityClaims(string id, string propertyId)
         {
-            return GetDataFromWikidata<Temperatures>(new Uri($"https://www.wikidata.org/w/api.php?action=wbgetentities&ids={id}&languages=en&format=json&props=labels"));
+            return GetDataFromWikidata<dynamic>(new Uri($"https://www.wikidata.org/w/api.php?action=wbgetclaims&entity={id}&property={propertyId}&format=json"));
         }
         /// <summary>
         /// Get Teams from Football API
