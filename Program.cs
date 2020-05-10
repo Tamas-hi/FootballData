@@ -17,21 +17,19 @@ namespace FootballData
 {
     public class Program
     {
-        static int tableWidth = 150;
+        public static int tableWidth = 150; // megjelenítéshez 
+        public static MatchData wiki = new MatchData(); // wikidata példány
+        public static MatchData API = new MatchData(); //  Football API példány
+        public static int allGoals = 0; // összes gólok száma a ligában
+        public static bool flag = false; //
         public static string Identity = null;
-        public static MatchData wiki = new MatchData();
-        public static MatchData API = new MatchData();
-        public static int allGoals = 0;
-        public static bool flag = false;
         public static List<Tuple<Team, Team, int>> distanceList = new List<Tuple<Team, Team, int>>();
         public static Dictionary<string, string> RealIdNamePairs = new Dictionary<string, string>();
         public static Dictionary<string, string> TeamAndVenue = new Dictionary<string, string>();
-
-        // venue-nál még hibát dob, azt még kezelni
         public static void Main(string[] args)
         {
             PrintRow("Wikidata", "Football API");
-            wiki.Teams = new List<Team>(); // ranking - team
+            wiki.Teams = new List<Team>();
             //wiki.Relegated = new List<Team>();
             Console.Write("Enter Wikidata Entity ID: ");
             string WikiId = Console.ReadLine();
@@ -88,7 +86,7 @@ namespace FootballData
                             dynamic json = JsonConvert.DeserializeObject(qualifierSnak.RawDataValue.ToString());
                             if (json.value.amount != null)
                             {
-                                if (flag == false)
+                               if (flag == false)
                                 {
                                     IdValuePairs.Add(new KeyValuePair<string, string>(claim.MainSnak.PropertyId, claim.MainSnak.DataValue.ToString())); // property - csapat ID
                                     teamIdsList.Add(claim.MainSnak.DataValue.ToString()); // kell P571 (alapítás), P115 (home_venue), 
@@ -385,6 +383,10 @@ namespace FootballData
 
             foreach (var team in allTeams)
             {
+                if(team.name == "Everton")
+                {
+                    team.venue_name = "Goodison Park";
+                }
                 API.Teams.Add(team);
             }
 
@@ -459,7 +461,6 @@ namespace FootballData
 
                         foreach (var team in (List<Team>)toValue)
                         {
-
                             toTeamPropertyValues.Add(team);
                             /*Type myType = team.GetType();
                             IList<PropertyInfo> props = new List<PropertyInfo>(myType.GetProperties());
@@ -480,6 +481,7 @@ namespace FootballData
                 }
 
             }
+
 
             for (int i = 0; i < selfPropertyValues.Count; i++)
             {
