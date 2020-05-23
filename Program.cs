@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using DiffMatchPatch;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
@@ -23,14 +24,16 @@ namespace FootballData
         public static int allGoals = 0; // összes gólok száma a ligában
         public static bool flag = false; //
         public static string Identity = null;
-        public static List<Tuple<Team, Team, int>> distanceList = new List<Tuple<Team, Team, int>>();
+        public static List<Tuple<string, string, int>> distanceList = new List<Tuple<string, string, int>>();
+        public static List<Tuple<Team, Team, int>> distanceListTeams = new List<Tuple<Team, Team, int>>();
         public static Dictionary<string, string> RealIdNamePairs = new Dictionary<string, string>();
         public static Dictionary<string, string> TeamAndVenue = new Dictionary<string, string>();
+
         public static void Main(string[] args)
         {
             PrintRow("Wikidata", "Football API");
             wiki.Teams = new List<Team>();
-            //wiki.Relegated = new List<Team>();
+            wiki.Relegated = new List<Team>();
             Console.Write("Enter Wikidata Entity ID: ");
             string WikiId = Console.ReadLine();
             // átadjuk a megadott ID-t
@@ -39,7 +42,7 @@ namespace FootballData
 
             Console.Write("Enter Football API league ID: ");
             API.Teams = new List<Team>();
-            //API.Relegated = new List<Team>();
+            API.Relegated = new List<Team>();
             string APILeagueId = Console.ReadLine();
             GetLeagueFromAPI(int.Parse(APILeagueId));
 
@@ -47,7 +50,7 @@ namespace FootballData
             MatchData(wiki, API);
         }
 
-        private static async Task MainAsync(string id) // Wiki
+        private static async Task MainAsync(string id) // Wiki belépés
         {
             var client = new WikiClient
             {
@@ -66,7 +69,7 @@ namespace FootballData
                 Console.WriteLine(ex.Message);
             }
 
-            var entity = new Entity(site, id);
+            var entity = new Entity(site, id); // a lekért entitás
             await entity.RefreshAsync(EntityQueryOptions.FetchClaims);
 
             // Claimek közül az egyes (P)ropertykhez tartozó DataValue.value érték
@@ -284,6 +287,7 @@ namespace FootballData
                     //int rank = int.Parse(ranking);
                     // Console.WriteLine(rank);
                     Team team = new Team();
+                    team.team_id = key;
                     team.teamName = teamName;
                     team.founded = TeamAndFounded[key];
                     team.venue_name = TeamAndVenue[key];
@@ -311,14 +315,17 @@ namespace FootballData
             {
                 string teamName = RealIdNamePairs[key];
                 Team team = new Team();
+                team.team_id = key;
                 team.teamName = teamName;
-               // wiki.Relegated.Add(team);
+                team.founded = TeamAndFounded[key];
+                team.venue_name = TeamAndVenue[key];
+                wiki.Relegated.Add(team);
 
             }
-            //foreach (var team in wiki.Relegated)
-            //{
-                // Console.WriteLine(team);
-            //}
+            foreach (var team in wiki.Relegated)
+            {
+                // Console.WriteLine(team.teamName + " " + team.founded + " " + team.venue_name);
+            }
 
             foreach (string key in temp["P1350"])
             {
@@ -390,7 +397,7 @@ namespace FootballData
                 API.Teams.Add(team);
             }
 
-            API.Winner = API.Teams.First().name;
+            API.Winner = API.Teams.Last().name;
             var lastTeam = API.Teams[API.Teams.Count - 1];
             lastTeam.name = API.Teams[API.Teams.Count - 1].name;
             var lastButOneTeam = API.Teams[API.Teams.Count - 2];
@@ -398,9 +405,9 @@ namespace FootballData
             var lastButOneButOneTeam = API.Teams[API.Teams.Count - 3];
             lastButOneButOneTeam.name = API.Teams[API.Teams.Count - 3].name;
 
-           // API.Relegated.Add(lastTeam);
-           // API.Relegated.Add(lastButOneTeam);
-           // API.Relegated.Add(lastButOneButOneTeam);
+            API.Relegated.Add(lastTeam);
+            API.Relegated.Add(lastButOneTeam);
+            API.Relegated.Add(lastButOneButOneTeam);
 
             API.numberOfTeams = API.Teams.Count().ToString();
             API.numberOfMatches = GetFixtures(league_id).ToString();
@@ -410,19 +417,36 @@ namespace FootballData
         private static void MatchData(MatchData wiki, MatchData API)
         {
             LevenshteinDistance(wiki, API);
+
+
             var result = distanceList.GroupBy(item => item.Item1)
-                                     .Select(g => g.OrderBy(t => t.Item3).First()).ToList();
+                                      .Select(g => g.OrderBy(t => t.Item3).First()).ToList();
+
 
             foreach (var x in result)
             {
-                 Console.WriteLine(x.Item1.teamName + " " +  x.Item2.name + " " + x.Item3);
+                Console.WriteLine(x.Item1 + " " + x.Item2 + " " + x.Item3);
+            }
+
+            var resultTeams = distanceListTeams.GroupBy(item => item.Item1)
+                                     .Select(g => g.OrderBy(t => t.Item3).First()).ToList();
+
+            foreach (var x in resultTeams) // ide még kell fix
+            {
+                string firstName = x.Item1.teamName;
+                string secondName = x.Item2.name;
+
+
+
+                Console.WriteLine(x.Item1.teamName + " " +  x.Item2.name + " " + x.Item3); // ha névvel akarjuk kiírni
+               // Console.WriteLine(x.Item1.team_id + " " + x.Item2.team_id + " " + x.Item3);
             }
 
         }
         /// <summary>
         /// Compute the distance between two strings.
         /// </summary>
-        public static int LevenshteinDistance<T>(T self, T to, params string[] ignore) where T : class
+        public static int LevenshteinDistance<T>(T self, T to) where T : class
         {
             List<string> selfPropertyValues = new List<string>();
             List<string> toPropertyValues = new List<string>();
@@ -434,7 +458,6 @@ namespace FootballData
             {
                 Type type = typeof(T);
 
-                List<string> ignoreList = new List<string>(ignore);
                 foreach (PropertyInfo pi in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {
                     object selfValue = type.GetProperty(pi.Name).GetValue(self, null); // wiki property érték
@@ -449,27 +472,11 @@ namespace FootballData
                         {
 
                             selfTeamPropertyValues.Add(team);
-                            /*Type myType = team.GetType();
-                            IList<PropertyInfo> props = new List<PropertyInfo>(myType.GetProperties());
-                            foreach (PropertyInfo prop in props)
-                            {
-                                object propValue = prop.GetValue(team, null);
-                                if (propValue != null)
-                                    selfPropertyValues.Add(propValue.ToString());
-                            }*/
                         }
 
                         foreach (var team in (List<Team>)toValue)
                         {
                             toTeamPropertyValues.Add(team);
-                            /*Type myType = team.GetType();
-                            IList<PropertyInfo> props = new List<PropertyInfo>(myType.GetProperties());
-                            foreach (PropertyInfo prop in props)
-                            {
-                                object propValue = prop.GetValue(team, null);
-                                if (propValue != null)
-                                    toPropertyValues.Add(propValue.ToString());
-                            }*/
                         }
                     }
 
@@ -530,7 +537,7 @@ namespace FootballData
                     // Step 7
 
                     var tuple = Tuple.Create(selfPropertyValues[i], toPropertyValues[j], d[n, m]);
-                   // distanceList.Add(tuple);
+                    distanceList.Add(tuple);
                     //return d[n, m];             
                 }
             }
@@ -545,28 +552,28 @@ namespace FootballData
             {
                 for (int j = 0; j < toTeamPropertyValues.Count; j++)
                 {
-                    n = selfTeamPropertyValues[i].teamName.Length;
-                    m = toTeamPropertyValues[j].name.Length;
+                    n = selfTeamPropertyValues[i].teamName.Length; // csapat nevének hossza wikidatáról
+                    m = toTeamPropertyValues[j].name.Length; // csapat nevének hossza Football API-ból
 
-                    int[,] d = new int[n + 1, m + 1];
+                    int[,] d = new int[n + 1, m + 1]; // csapatnév+1 * csapatnév+1 méretű tömböt hoz létre
 
                     // Step 1
-                    if (n == 0)
+                    if (n == 0) // 0-e a csapatnév hossza wikidatán
                     {
                         return m;
                     }
 
-                    if (m == 0)
+                    if (m == 0) //0 - e a csapatnév hossza Football API-ból
                     {
                         return n;
                     }
 
                     // Step 2
-                    for (int a = 0; a <= n; d[a, 0] = a++)
+                    for (int a = 0; a <= n; d[a, 0] = a++) // a 0. oszlopot felölti számokkal 0-tól n-ig
                     {
                     }
 
-                    for (int b = 0; b <= m; d[0, b] = b++)
+                    for (int b = 0; b <= m; d[0, b] = b++) // a 0. sort feltölti számokkal 0-tól m-ig
                     {
                     }
 
@@ -577,7 +584,7 @@ namespace FootballData
                         for (int b = 1; b <= m; b++)
                         {
                             // Step 5
-                            int cost = ((toTeamPropertyValues[j].name)[b - 1]) == ((selfTeamPropertyValues[i].teamName)[a - 1]) ? 0 : 1;
+                            int cost = ((toTeamPropertyValues[j].name)[b - 1]) == ((selfTeamPropertyValues[i].teamName)[a - 1]) ? 0 : 1; // itt csak azt vizsgálja, hogy egyenlő-e a két vizsgált karakter
 
                             // Step 6
                             d[a, b] = Math.Min(
@@ -585,11 +592,6 @@ namespace FootballData
                                 d[a - 1, b - 1] + cost);
                         }
                     }
-
-
-
-
-
 
                     o = selfTeamPropertyValues[i].founded.ToString().Length;
                     p = toTeamPropertyValues[j].founded.ToString().Length;
@@ -683,7 +685,7 @@ namespace FootballData
                     // Step 7
 
                     var tuple = Tuple.Create(selfTeamPropertyValues[i], toTeamPropertyValues[j], totalCost);
-                    distanceList.Add(tuple);
+                    distanceListTeams.Add(tuple);
                     //return d[n, m];             
 
                 }

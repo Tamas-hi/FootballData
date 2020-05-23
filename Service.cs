@@ -78,7 +78,7 @@ namespace FootballData
 
         public dynamic GetEntityClaims(string id, string propertyId)
         {
-            return GetDataFromWikidata<dynamic>(new Uri($"https://www.wikidata.org/w/api.php?action=wbgetclaims&entity={id}&property={propertyId}&format=json"));
+            return GetDataFromFootballApi<dynamic>(new Uri($"https://www.wikidata.org/w/api.php?action=wbgetclaims&entity={id}&property={propertyId}&format=json"));
         }
         /// <summary>
         /// Get Teams from Football API

@@ -6,7 +6,7 @@ namespace FootballData
 {
     public class Team
     {
-        //public int team_id { get; set; }
+        public string team_id { get; set; }
         public string teamName { get; set; }
         public string name { get; set; }
        // public string country { get; set; }
