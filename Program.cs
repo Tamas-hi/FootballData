@@ -22,7 +22,7 @@ namespace FootballData
         public static MatchData wiki = new MatchData(); // wikidata példány
         public static MatchData API = new MatchData(); //  Football API példány
         public static int allGoals = 0; // összes gólok száma a ligában
-        public static bool flag = false; //
+        public static bool flag = false; 
         public static string Identity = null;
         public static List<Tuple<string, string, int>> distanceList = new List<Tuple<string, string, int>>();
         public static List<Tuple<Team, Team, int>> distanceListTeams = new List<Tuple<Team, Team, int>>();
@@ -146,6 +146,11 @@ namespace FootballData
             foreach (var element in teamIdsList)
             {
                 var teamDetails = new Service().GetEntityClaims(element, "P571");
+
+                if(teamDetails == null)
+                {
+                    continue;
+                }
 
                 try
                 {
@@ -418,10 +423,8 @@ namespace FootballData
         {
             LevenshteinDistance(wiki, API);
 
-
             var result = distanceList.GroupBy(item => item.Item1)
                                       .Select(g => g.OrderBy(t => t.Item3).First()).ToList();
-
 
             foreach (var x in result)
             {
@@ -431,15 +434,10 @@ namespace FootballData
             var resultTeams = distanceListTeams.GroupBy(item => item.Item1)
                                      .Select(g => g.OrderBy(t => t.Item3).First()).ToList();
 
-            foreach (var x in resultTeams) // ide még kell fix
+            foreach (var x in resultTeams)
             {
-                string firstName = x.Item1.teamName;
-                string secondName = x.Item2.name;
-
-
-
-                Console.WriteLine(x.Item1.teamName + " " +  x.Item2.name + " " + x.Item3); // ha névvel akarjuk kiírni
-               // Console.WriteLine(x.Item1.team_id + " " + x.Item2.team_id + " " + x.Item3);
+                //Console.WriteLine(x.Item1.teamName + " " +  x.Item2.name + " " + x.Item3);
+                Console.WriteLine(x.Item1.team_id + " " + x.Item2.team_id + " " + x.Item3);
             }
 
         }
@@ -643,31 +641,23 @@ namespace FootballData
                     int[,] f = new int[q + 1, r + 1];
 
                     // Step 1
-                    if (q == 0)
-                    {
+                    if (q == 0) {
                         return q;
                     }
 
-                    if (r == 0)
-                    {
+                    if (r == 0) {
                         return r;
                     }
 
                     // Step 2
-                    for (int a = 0; a <= q; f[a, 0] = a++)
-                    {
-                    }
+                    for (int a = 0; a <= q; f[a, 0] = a++) { }
 
-                    for (int b = 0; b <= r; f[0, b] = b++)
-                    {
-                    }
+                    for (int b = 0; b <= r; f[0, b] = b++) { }
 
                     // Step 3
-                    for (int a = 1; a <= q; a++)
-                    {
+                    for (int a = 1; a <= q; a++) {
                         //Step 4
-                        for (int b = 1; b <= r; b++)
-                        {
+                        for (int b = 1; b <= r; b++) {
                             // Step 5
                             int cost = ((toTeamPropertyValues[j].venue_name.ToString())[b - 1]) == ((selfTeamPropertyValues[i].venue_name.ToString())[a - 1]) ? 0 : 1;
 
@@ -677,81 +667,16 @@ namespace FootballData
                                 f[a - 1, b - 1] + cost);
                         }
                     }
-
-
-
                     int totalCost = d[n, m] + e[o, p] + f[q, r];
 
                     // Step 7
 
                     var tuple = Tuple.Create(selfTeamPropertyValues[i], toTeamPropertyValues[j], totalCost);
-                    distanceListTeams.Add(tuple);
-                    //return d[n, m];             
+                    distanceListTeams.Add(tuple);             
 
                 }
             }
             return 100;
-        }
-
-        private static string GetEntityData(int league_id)
-        {
-            var rootLeague = new Service().GetLeagues(league_id); // a liga
-            var apiLeague = rootLeague.api;
-            var leagues = apiLeague.leagues.First();
-
-            PropertyInfo[] properties = typeof(League).GetProperties();
-
-            foreach (PropertyInfo property in properties)
-            {
-                Console.WriteLine(property.Name + "\t" + property.GetValue(leagues)); // csak a kiválasztott liga
-            }
-            return null;
-        }
-
-        public static Dictionary<string, string> GetQPsFromWikidata(string id)
-        {
-            Dictionary<string, string> IdNamePairs = new Dictionary<string, string>();
-
-            dynamic result = new Service().GetIdentifiers(id);
-
-            foreach (Match match in Regex.Matches(result.ToString(), @"(?<!\w)Q\d\w+"))
-            {
-                if (!IdNamePairs.ContainsKey(match.Value))
-                {
-                    IdNamePairs.Add(match.Value, null);
-                }
-            }
-
-            foreach (Match match in Regex.Matches(result.ToString(), @"(?<!\w)P\d\w+"))
-            {
-                if (!IdNamePairs.ContainsKey(match.Value))
-                {
-                    if (IdNamePairs.Count < 50)
-                        IdNamePairs.Add(match.Value, null);
-                }
-            }
-
-            var x = string.Format("{0}", string.Join("|", IdNamePairs.Keys));
-
-            var entityNames = new Service().GetEntityNames(x);
-
-            IdNamePairs.Clear();
-            foreach (var data in entityNames)
-            {
-                foreach (var y in data)
-                {
-                    if (y is JObject)
-                        foreach (var z in y)
-                        {
-                            foreach (var w in z)
-                            {
-                                IdNamePairs[w.id] = w.labels.en.value;
-                            }
-                        }
-                }
-            }
-
-            return IdNamePairs;
         }
 
 
@@ -782,13 +707,6 @@ namespace FootballData
             }
         }
 
-        public static string GetAllProperties(object obj)
-        {
-            return string.Join(" ", obj.GetType()
-                                        .GetProperties()
-                                        .Select(prop => prop.GetValue(obj)));
-        }
-
         public static int GetFixtures(int league_id)
         {
             var rootFixtures = new Service().GetFixtures(league_id); // 2018/2019 Premier League - last round
@@ -805,32 +723,5 @@ namespace FootballData
             return fixtures.Count();
         }
 
-        public static List<string> GetRounds()
-        {
-            var rootRounds = new Service().GetRounds(2);
-            var apiRounds = rootRounds.api;
-            var round = apiRounds.fixtures;
-
-            return round;
-        }
-
-        private static string GetEntityIdBySearch(string wikiTeamName) // wiki
-        {
-            var rootEntity = new Service().GetEntityIdBySearch(wikiTeamName);
-            var entity = rootEntity.Search;
-            foreach (var property in entity)
-            {
-                return property.Title; // label ha a név kell
-            }
-            return null;
-        }
-
-        private static int GetLeagueIdBySearch(string wikiLeagueName) // Football API
-        {
-            var rootLeague = new Service().FindLeagueByIdAndSeason(wikiLeagueName);
-            var apiLeague = rootLeague.api;
-            var leagues = apiLeague.leagues;
-            return leagues.First().league_id;
-        }
     }
 }

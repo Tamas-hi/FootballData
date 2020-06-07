@@ -1,5 +1,4 @@
-﻿using FootballData.Wikidata_Models;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 using System;
@@ -71,10 +70,7 @@ namespace FootballData
             return GetDataFromWikidata<dynamic>(new Uri($"https://www.wikidata.org/w/api.php?action=wbgetentities&ids={allKeysSeparated}&format=json&props=labels&languages=en"));
         }
 
-        public RootSearchObject GetEntityIdBySearch(string wikiTeamName)
-        {
-            return GetDataFromWikidata<RootSearchObject>(new Uri($"https://www.wikidata.org/w/api.php?action=wbsearchentities&search={wikiTeamName}&language=en&limit=1&format=json"));
-        }
+        
 
         public dynamic GetEntityClaims(string id, string propertyId)
         {
@@ -89,20 +85,14 @@ namespace FootballData
             return GetDataFromFootballApi<RootTeamObject>(new Uri(serverUrl, $"/v2/teams/league/{league_id}"));
         }
 
-        public RootStandingObject GetStandings(int league_id)
-        {
-            return GetDataFromFootballApi<RootStandingObject>(new Uri(serverUrl, $"/v2/leagueTable/{league_id}/"));
-        }
+        
 
         public RootFixtureObject GetFixtures(int league_id)
         {
             return GetDataFromFootballApi<RootFixtureObject>(new Uri(serverUrl, $"/v2/fixtures/league/{league_id}"));
         }
 
-        public RootRoundObject GetRounds(int league_id)
-        {
-            return GetDataFromFootballApi<RootRoundObject>(new Uri(serverUrl, $"/v2/fixtures/rounds/{league_id}/"));
-        }
+        
 
         public RootLeagueObject GetLeagues(int league_id)
         {

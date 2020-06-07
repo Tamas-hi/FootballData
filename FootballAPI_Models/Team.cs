@@ -9,10 +9,8 @@ namespace FootballData
         public string team_id { get; set; }
         public string teamName { get; set; }
         public string name { get; set; }
-       // public string country { get; set; }
         public int founded { get; set; }
         public string venue_name { get; set; }
-       // public int venue_capacity { get; set; }
     }
 
     public class TeamApi
