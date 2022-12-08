@@ -9,7 +9,7 @@
     <PackageReference Include="CXuesong.MW.WikiClientLibrary" Version="0.7.0-int.9" />
     <PackageReference Include="CXuesong.MW.WikiClientLibrary.Wikibase" Version="0.7.0-int.2" />
     <PackageReference Include="Diff.Match.Patch" Version="2.1.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
     <PackageReference Include="RestSharp" Version="106.6.10" />
   </ItemGroup>
 
